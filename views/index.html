@@ -23,7 +23,7 @@
 <div id="fb-root"></div>
 <script>
 	var broadcasting = false
-	var updater;
+	var updater, current_user;
   var getUrlParameter = function getUrlParameter(sParam) {
 	  var sPageURL = decodeURIComponent(window.location.search.substring(1)),
 	    sURLVariables = sPageURL.split('&'),
@@ -40,8 +40,8 @@
 	var room_token = getUrlParameter('r')
 
 
-	var socket = io("http://192.168.1.107:5000/", {path: "/socket.io"});
-	function retrieveFbdata(){
+	var socket = io("http://localhost:5000/", {path: "/socket.io"});
+	function retrieveFbdata(token, callback){
 		console.log("retrieveFbdata")
 	  FB.api('/me', function(response) {
 	    var user = {facebook_id: response.id, name: response.name}
@@ -50,7 +50,9 @@
 		    function (response) {
 		      if (response && !response.error) {
 		        user["profile_picture"] = response.data.url
-				     socket.emit('user connected', user, function(){
+				     socket.emit('user connected', user, token, function(){
+				     	current_user = user
+				     	callback()
 				     	console.log("data sent")
 				     })
 		      }
@@ -58,27 +60,29 @@
 		  ); 
 	  });
 	}
-	$.getScript('//connect.facebook.net/en_US/sdk.js', function(){
-    FB.init({
-      appId      : '1649826191991303',
-      xfbml      : false,
-      version    : 'v2.8'
-    });
-		FB.getLoginStatus(function(response) {
-		  if (response.status === 'connected') {
-		  	retrieveFbdata()
-		  }
-		  else {
-		    FB.login(function(response) {
-				  if (response.authResponse) {
-				   retrieveFbdata()
-				  } else {
-				   console.log('User cancelled login or did not fully authorize.');
-				  }
-				});
-		  }
-		});
-  });
+	function facebook(token, callback){
+		$.getScript('//connect.facebook.net/en_US/sdk.js', function(){
+	    FB.init({
+	      appId      : '1649826191991303',
+	      xfbml      : false,
+	      version    : 'v2.8'
+	    });
+			FB.getLoginStatus(function(response) {
+			  if (response.status === 'connected') {
+			  	retrieveFbdata(token, callback)
+			  }
+			  else {
+			    FB.login(function(response) {
+					  if (response.authResponse) {
+					   retrieveFbdata(token, callback)
+					  } else {
+					   console.log('User cancelled login or did not fully authorize.');
+					  }
+					});
+			  }
+			});
+	  });
+	}
 
   $(document).on('click', '#broadcast', function(){
   	if (broadcasting){
@@ -96,25 +100,25 @@
   })
 
   socket.on("player ready", function(){
-  	if (!room_token){
-  		$("#broadcast").attr('disabled', false)
-  	}
+		facebook(room_token, function(){
+	  	if (!room_token){
+	  		$("#broadcast").attr('disabled', false)
+	  	} else {
+				$("#listen").attr('disabled', false)
+				console.log("You can not broadcast because you are not the owner of the room")
+				$(document).on('click', '#listen', function(){
+					socket.emit("listen", current_user, function(room){
+						console.log("you are now connected to room " + room.name)
+						updateLocalPlayer(room)
+					})
+				})
+	  	}
+		})
   })
 
   socket.on("room created", function(token){
   	console.log("http://localhost:5000?r=" + token)
   })
-
-	if (room_token){
-		$("#listen").attr('disabled', false)
-		console.log("You can not broadcast because you are not the owner of the room")
-		$(document).on('click', '#listen', function(){
-			socket.emit("listen", function(room){
-				console.log("you are now connected to room " + room.name)
-				updateLocalPlayer(room)
-			})
-		})
-	}
 
 	function updateLocalPlayer(room){
 		socket.emit("update player", room, function(){

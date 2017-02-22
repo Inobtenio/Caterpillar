@@ -2,7 +2,7 @@
 global.HOST = (process.env.HOST || "127.0.0.1")
 global.PORT = (process.env.PORT || 5000)
 global.RELATIVE_PATH = (process.env.RELATIVE_PATH || "")
-global.SEVER_URL = "https://remotecast.herokuapp.com/"
+global.SEVER_URL = "https://remotecast.herokuapp.com"
 global.API_HOST = (process.env.API_HOST || "http://localhost:5000")
 global.RELATIVE_API_PATH = (process.env.RELATIVE_API_PATH || "")
 var request = require('request');
@@ -24,25 +24,12 @@ app.get("*", function(req, res){
 });
 
 
-function requestCallback(error, response, body) {
-  if (!error && response.statusCode == 200) {
-    var info = JSON.parse(body);
-    console.log(info);
-  } else {
-    console.log("-- ERROR --");
-    console.log(error);
-    console.log("-- ----- --");
-  }
-}
-
 io.on('connection', function(socket){
   var current_user, current_room_token, ready
   const helper = SpotifyWebHelper();
 
   helper.player.on('ready', () => {
-    console.log("ready")
     socket.emit("player ready")
-    console.log(helper.status.track.track_resource)
     ready = true
 
     socket.on('broadcast start', function(name, callback){
@@ -57,7 +44,6 @@ io.on('connection', function(socket){
                         },
                         json: true // Automatically stringifies the body to JSON
                     };
-      console.log(options)
       rp(options)
         .then(function (parsedBody) {
             room = parsedBody// POST succeeded...
@@ -96,14 +82,20 @@ io.on('connection', function(socket){
               uri = parsedBody["status"]["track"]["track_resource"]["uri"]
               playing = parsedBody["status"]["playing"]
               if ((uri != helper.status.track.track_resource.uri) || (helper.status.playing != playing)){
-                helper.player.play(uri)
-                helper.player.seek(parsedBody["status"]["playing_position"])
+                helper.status.playing = playing
+                console.log("remote", playing)
+                helper.player.play(uri + '#' + parsedBody["status"]["playing_position"]).then(function(){
+                  console.log("Player seek to position " + parsedBody["status"]["playing_position"])
+                })
+                console.log("local", helper.status.playing)
                 if (!playing){
-                  helper.playing.pause()
+                  helper.player.pause()
+                } else {
+                  helper.player.pause(true)
                 }
                 callback()
               }
-              fetchRoomStatus(options)// POST succeeded...
+              fetchRoomStatus(options, callback)// POST succeeded...
           })
           .catch(function (err) {
               console.log(err)// POST failed...
@@ -140,18 +132,22 @@ io.on('connection', function(socket){
     //    'playing_position': ...
     //  }
 
-    socket.on('listen', function(callback){
+    socket.on('listen', function(user, callback){
       var room;
       if (ready){
+        console.log("READY")
         var options = {
                         method: 'POST',
                         uri: global.SEVER_URL + '/api/v1/users',
-                        body: current_user,
+                        body: user,
                         json: true // Automatically stringifies the body to JSON
                     };
+        console.log(options)
         rp(options)
           .then(function (parsedBody) {
-              console.log(parsedBody)// POST succeeded...
+              console.log("USER LIST")
+              console.log(parsedBody)
+              console.log("USER LIST")// POST succeeded...
           })
           .catch(function (err) {
               console.log(err)// POST failed...
@@ -159,10 +155,7 @@ io.on('connection', function(socket){
 
         var options = {
                         method: 'GET',
-                        uri: global.SEVER_URL + '/api/v1/rooms',
-                        body: {
-                          token: current_room_token
-                        },
+                        uri: global.SEVER_URL + '/api/v1/rooms?token=' + current_room_token,
                         json: true // Automatically stringifies the body to JSON
                     };
         rp(options)
@@ -174,50 +167,51 @@ io.on('connection', function(socket){
               console.log(err)// POST failed...
           });
 
+      } else {
+        callback({name: "Undefined Room"})
       }
     })
 
-
-
+    socket.on('user connected', function(user, room_token, callback){
+      if (room_token){
+        current_room_token = room_token
+        console.log(current_room_token)
+        var options = {
+                          method: 'GET',
+                          uri: global.SEVER_URL + '/api/v1/users',
+                          body: {
+                            token: current_room_token
+                          },
+                          json: true // Automatically stringifies the body to JSON
+                      };
+          rp(options)
+            .then(function (parsedBody) {
+                console.log(parsedBody)// POST succeeded...
+                callback()
+            })
+            .catch(function (err) {
+                console.log(err)// POST failed...
+            });
+      } else {
+        var options = {
+                          method: 'POST',
+                          uri: global.SEVER_URL + '/api/v1/users',
+                          body: user,
+                          json: true // Automatically stringifies the body to JSON
+                      };
+          rp(options)
+            .then(function (parsedBody) {
+                console.log(parsedBody)// POST succeeded...
+                current_user = parsedBody
+                callback()
+            })
+            .catch(function (err) {
+                console.log(err)// POST failed...
+            }); 
+      }
+    })
   });
 
-  socket.on('user connected', function(user, callback){
-    if (current_room_token){
-      current_room_token = room_token
-      var options = {
-                        method: 'GET',
-                        uri: global.SEVER_URL + '/api/v1/users',
-                        body: {
-                          token: current_room_token
-                        },
-                        json: true // Automatically stringifies the body to JSON
-                    };
-        rp(options)
-          .then(function (parsedBody) {
-              console.log(parsedBody)// POST succeeded...
-              callback()
-          })
-          .catch(function (err) {
-              console.log(err)// POST failed...
-          });
-    } else {
-      var options = {
-                        method: 'POST',
-                        uri: global.SEVER_URL + '/api/v1/users',
-                        body: user,
-                        json: true // Automatically stringifies the body to JSON
-                    };
-        rp(options)
-          .then(function (parsedBody) {
-              console.log(parsedBody)// POST succeeded...
-              current_user = parsedBody
-              callback()
-          })
-          .catch(function (err) {
-              console.log(err)// POST failed...
-          }); 
-    }
-  })
 
   helper.player.on('error', err => {
     console.log(err)
