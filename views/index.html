@@ -1,0 +1,129 @@
+<html>
+
+  <head>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+    <script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <title>SpotiCast</title>
+  </head>
+
+  <body>
+  	<button id='broadcast' disabled class='btn btn-danger'>
+  		<b>Broadcast</b>
+  	</button>
+  	<button id='listen' disabled class='btn btn-danger'>
+  		<b>Listen</b>
+  	</button>
+  </body>
+</html>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+<div id="fb-root"></div>
+<script>
+	var broadcasting = false
+	var updater;
+  var getUrlParameter = function getUrlParameter(sParam) {
+	  var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+	    sURLVariables = sPageURL.split('&'),
+	    sParameterName,
+	    i;
+	  for (i = 0; i < sURLVariables.length; i++) {
+	    sParameterName = sURLVariables[i].split('=');
+	    if (sParameterName[0] === sParam) {
+	      return sParameterName[1] === undefined ? true : sParameterName[1];
+	    }
+	  }
+	};
+
+	var room_token = getUrlParameter('r')
+
+
+	var socket = io("http://192.168.1.107:5000/", {path: "/socket.io"});
+	function retrieveFbdata(){
+		console.log("retrieveFbdata")
+	  FB.api('/me', function(response) {
+	    var user = {facebook_id: response.id, name: response.name}
+	    FB.api(
+		    "/"+ response.id +"/picture",
+		    function (response) {
+		      if (response && !response.error) {
+		        user["profile_picture"] = response.data.url
+				     socket.emit('user connected', user, function(){
+				     	console.log("data sent")
+				     })
+		      }
+		    }
+		  ); 
+	  });
+	}
+	$.getScript('//connect.facebook.net/en_US/sdk.js', function(){
+    FB.init({
+      appId      : '1649826191991303',
+      xfbml      : false,
+      version    : 'v2.8'
+    });
+		FB.getLoginStatus(function(response) {
+		  if (response.status === 'connected') {
+		  	retrieveFbdata()
+		  }
+		  else {
+		    FB.login(function(response) {
+				  if (response.authResponse) {
+				   retrieveFbdata()
+				  } else {
+				   console.log('User cancelled login or did not fully authorize.');
+				  }
+				});
+		  }
+		});
+  });
+
+  $(document).on('click', '#broadcast', function(){
+  	if (broadcasting){
+  		broadcasting = false
+  		window.clearInterval(updater)
+  	} else {
+	  	socket.emit('broadcast start', 'RandomRoom', function(room){
+		   	console.log("http://localhost:5000?r="+room.token)
+		  })
+  		broadcasting = true
+  		updater = window.setInterval(function(){
+				socket.emit("update broadcast status")
+			}, 200)
+  	}
+  })
+
+  socket.on("player ready", function(){
+  	if (!room_token){
+  		$("#broadcast").attr('disabled', false)
+  	}
+  })
+
+  socket.on("room created", function(token){
+  	console.log("http://localhost:5000?r=" + token)
+  })
+
+	if (room_token){
+		$("#listen").attr('disabled', false)
+		console.log("You can not broadcast because you are not the owner of the room")
+		$(document).on('click', '#listen', function(){
+			socket.emit("listen", function(room){
+				console.log("you are now connected to room " + room.name)
+				updateLocalPlayer(room)
+			})
+		})
+	}
+
+	function updateLocalPlayer(room){
+		socket.emit("update player", room, function(){
+			console.log("updating your local player")
+		})
+	}
+
+	socket.on("player status", function(status){
+		alert(status)
+	})
+</script>
+<div class="fb-login-button" data-max-rows="1" data-size="large" data-show-faces="true" data-auto-logout-link="false"></div>

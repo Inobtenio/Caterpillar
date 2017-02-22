@@ -1,0 +1,19 @@
+{
+  "name": "Spoticast",
+  "description": "Cast your Spotify playback to a virtual music room friends can join.",
+  "version": "0.0.1",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^2.0.0",
+    "express": "~4.10.2",
+    "mime-types": "2.0.14",
+    "request": "^2.78.0",
+    "request-promise": "^4.1.1",
+    "socket.io": "~1.4.8",
+    "spotify-web-helper": "^1.7.0"
+  }
+}
