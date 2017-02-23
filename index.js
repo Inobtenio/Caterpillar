@@ -2,7 +2,7 @@
 global.HOST = (process.env.HOST || "127.0.0.1")
 global.PORT = (process.env.PORT || 5000)
 global.RELATIVE_PATH = (process.env.RELATIVE_PATH || "")
-global.SEVER_URL = "https://remotecast.herokuapp.com"
+global.SEVER_URL = "http://127.0.0.1:3000" //"https://remotecast.herokuapp.com"
 global.API_HOST = (process.env.API_HOST || "http://localhost:5000")
 global.RELATIVE_API_PATH = (process.env.RELATIVE_API_PATH || "")
 var request = require('request');
@@ -40,7 +40,7 @@ io.on('connection', function(socket){
                         body: {
                             caster_id: current_user["id"],
                             name: name,
-                            status: helper.status
+                            status: JSON.stringify(helper.status)
                         },
                         json: true // Automatically stringifies the body to JSON
                     };
@@ -60,7 +60,7 @@ io.on('connection', function(socket){
                         uri: global.SEVER_URL + '/api/v1/rooms',
                         body: {
                             caster_id: current_user.id,
-                            status: helper.status
+                            status: JSON.stringify(helper.status)
                         },
                         json: true // Automatically stringifies the body to JSON
                     };
