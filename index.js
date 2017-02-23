@@ -54,13 +54,13 @@ io.on('connection', function(socket){
         });
     })
 
-    socket.on('update broadcast status', function(){
+    socket.on('update broadcast status', function(token){
       var options = {
                         method: 'PUT',
                         uri: global.SEVER_URL + '/api/v1/rooms',
                         body: {
                             caster_id: current_user.id,
-                            token: current_room_token,
+                            token: token,
                             status: helper.status
                         },
                         json: true // Automatically stringifies the body to JSON
@@ -80,6 +80,8 @@ io.on('connection', function(socket){
     function fetchRoomStatus(options, callback) {
       rp(options)
           .then(function (parsedBody) {
+            console.log("GET ROOM")
+            console.log(parsedBody)
               uri = parsedBody["status"]["track"]["track_resource"]["uri"]
               playing = parsedBody["status"]["playing"]
               if ((uri != helper.status.track.track_resource.uri) || (helper.status.playing != playing)){
@@ -88,7 +90,6 @@ io.on('connection', function(socket){
                 helper.player.play(uri + '#' + parsedBody["status"]["playing_position"]).then(function(){
                   console.log("Player seek to position " + parsedBody["status"]["playing_position"])
                 })
-                console.log("local", helper.status.playing)
                 if (!playing){
                   helper.player.pause()
                 } else {
