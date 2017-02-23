@@ -23,7 +23,6 @@ app.get("*", function(req, res){
   res.sendFile(__dirname + '/views/index.html');
 });
 
-
 io.on('connection', function(socket){
   var current_user, current_room_token, ready
   const helper = SpotifyWebHelper();
@@ -60,7 +59,8 @@ io.on('connection', function(socket){
                         uri: global.SEVER_URL + '/api/v1/rooms',
                         body: {
                             caster_id: current_user.id,
-                            status: JSON.stringify(helper.status)
+                            status: helper.status,
+                            playing: helper.status.playing
                         },
                         json: true // Automatically stringifies the body to JSON
                     };
@@ -81,22 +81,14 @@ io.on('connection', function(socket){
           .then(function (parsedBody) {
             console.log("GET ROOM")
             console.log(parsedBody)
-              uri = parsedBody["status"]["track"]["track_resource"]["uri"]
-              playing = parsedBody["status"]["playing"]
-              if ((uri != helper.status.track.track_resource.uri) || (helper.status.playing != playing)){
-                helper.status.playing = playing
-                console.log("remote", playing)
-                helper.player.play(uri + '#' + parsedBody["status"]["playing_position"]).then(function(){
-                  console.log("Player seek to position " + parsedBody["status"]["playing_position"])
-                })
-                if (!playing){
-                  helper.player.pause()
-                } else {
-                  helper.player.pause(true)
-                }
-                callback()
-              }
-              fetchRoomStatus(options, callback)// POST succeeded...
+            if (parsedBody["changed"]){
+              helper.player.play(uri + '#' + parsedBody["status"]["playing_position"]).then(function(){
+                console.log("Player seek to position " + parsedBody["status"]["playing_position"])
+              })
+              helper.player.pause(parsedBody["playing"])
+              callback()
+            }
+            fetchRoomStatus(options, callback)// POST succeeded...
           })
           .catch(function (err) {
               console.log(err)// POST failed...
