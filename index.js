@@ -2,7 +2,7 @@
 global.HOST = (process.env.HOST || "127.0.0.1")
 global.PORT = (process.env.PORT || 5000)
 global.RELATIVE_PATH = (process.env.RELATIVE_PATH || "")
-global.SEVER_URL = "http://127.0.0.1:3000" //"https://remotecast.herokuapp.com"
+global.SEVER_URL = "https://remotecast.herokuapp.com"
 global.API_HOST = (process.env.API_HOST || "http://localhost:5000")
 global.RELATIVE_API_PATH = (process.env.RELATIVE_API_PATH || "")
 var request = require('request');
