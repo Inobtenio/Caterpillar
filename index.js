@@ -60,6 +60,7 @@ io.on('connection', function(socket){
                         uri: global.SEVER_URL + '/api/v1/rooms',
                         body: {
                             caster_id: current_user.id,
+                            token: current_room_token,
                             status: helper.status
                         },
                         json: true // Automatically stringifies the body to JSON
@@ -155,7 +156,7 @@ io.on('connection', function(socket){
 
         var options = {
                         method: 'GET',
-                        uri: global.SEVER_URL + '/api/v1/rooms?token=' + current_room_token,
+                        uri: global.SEVER_URL + '/api/v1/rooms?token=' + current_room_token,,
                         json: true // Automatically stringifies the body to JSON
                     };
         rp(options)
@@ -174,7 +175,7 @@ io.on('connection', function(socket){
 
     socket.on('user connected', function(user, room_token, callback){
       if (room_token){
-        current_room_token = room_token
+        current_room_token, = room_token
         console.log(current_room_token)
         var options = {
                           method: 'GET',
