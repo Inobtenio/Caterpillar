@@ -54,13 +54,12 @@ io.on('connection', function(socket){
         });
     })
 
-    socket.on('update broadcast status', function(token){
+    socket.on('update broadcast status', function(){
       var options = {
                         method: 'PUT',
                         uri: global.SEVER_URL + '/api/v1/rooms',
                         body: {
                             caster_id: current_user.id,
-                            token: token,
                             status: helper.status
                         },
                         json: true // Automatically stringifies the body to JSON

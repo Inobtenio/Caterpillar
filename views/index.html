@@ -94,7 +94,7 @@
 		  })
   		broadcasting = true
   		updater = window.setInterval(function(){
-				socket.emit("update broadcast status", room_token)
+				socket.emit("update broadcast status")
 			}, 200)
   	}
   })
