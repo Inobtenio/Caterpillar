@@ -23,7 +23,8 @@
 <div id="fb-root"></div>
 <script>
 	var broadcasting = false
-	var updater, current_user;
+	var current_user;
+
   var getUrlParameter = function getUrlParameter(sParam) {
 	  var sPageURL = decodeURIComponent(window.location.search.substring(1)),
 	    sURLVariables = sPageURL.split('&'),
@@ -53,7 +54,6 @@
 				     socket.emit('user connected', user, token, function(){
 				     	current_user = user
 				     	callback()
-				     	console.log("data sent")
 				     })
 		      }
 		    }
@@ -87,17 +87,20 @@
   $(document).on('click', '#broadcast', function(){
   	if (broadcasting){
   		broadcasting = false
-  		window.clearInterval(updater)
   	} else {
 	  	socket.emit('broadcast start', 'RandomRoom', function(room){
 		   	console.log("http://localhost:5000?r="+room.token)
 		  })
   		broadcasting = true
-  		updater = window.setInterval(function(){
-				socket.emit("update broadcast status")
-			}, 200)
+	  	updateBroadcastStatus()
   	}
   })
+
+  function updateBroadcastStatus(){
+  	socket.emit("update broadcast status", function(){
+  		updateBroadcastStatus()
+  	})
+  }
 
   socket.on("player ready", function(){
 		facebook(room_token, function(){
@@ -114,10 +117,6 @@
 				})
 	  	}
 		})
-  })
-
-  socket.on("room created", function(token){
-  	console.log("http://localhost:5000?r=" + token)
   })
 
 	function updateLocalPlayer(room){

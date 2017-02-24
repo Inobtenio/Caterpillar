@@ -2,7 +2,7 @@
 global.HOST = (process.env.HOST || "127.0.0.1")
 global.PORT = (process.env.PORT || 5000)
 global.RELATIVE_PATH = (process.env.RELATIVE_PATH || "")
-global.SEVER_URL = "https://remotecast.herokuapp.com"
+global.SEVER_URL = "https://remotecast.herokuapp.com" //"http://localhost:3000" //
 global.API_HOST = (process.env.API_HOST || "http://localhost:5000")
 global.RELATIVE_API_PATH = (process.env.RELATIVE_API_PATH || "")
 var request = require('request');
@@ -22,6 +22,16 @@ app.set('views', __dirname + '/views');
 app.get("*", function(req, res){
   res.sendFile(__dirname + '/views/index.html');
 });
+
+function parseTime(number) {
+  let fullseconds = Math.round(number);
+  let minutes = Math.floor(fullseconds / 60);
+  let seconds = fullseconds - (minutes * 60);
+  if (seconds < 10) {
+    seconds = '0' + seconds;
+  }
+  return minutes + ':' + seconds;
+}
 
 io.on('connection', function(socket){
   var current_user, current_room_token, ready
@@ -53,7 +63,7 @@ io.on('connection', function(socket){
         });
     })
 
-    socket.on('update broadcast status', function(){
+    socket.on('update broadcast status', function(callback){
       var options = {
                         method: 'PUT',
                         uri: global.SEVER_URL + '/api/v1/rooms',
@@ -66,7 +76,7 @@ io.on('connection', function(socket){
                     };
       rp(options)
         .then(function (parsedBody) {
-            console.log(parsedBody)// POST succeeded...
+            callback()// POST succeeded...
         })
         .catch(function (err) {
             console.log(err)// POST failed...
@@ -79,16 +89,16 @@ io.on('connection', function(socket){
     function fetchRoomStatus(options, callback) {
       rp(options)
           .then(function (parsedBody) {
-            console.log("GET ROOM")
-            console.log(parsedBody)
-            if (parsedBody["changed"]){
-              helper.player.play(uri + '#' + parsedBody["status"]["playing_position"]).then(function(){
-                console.log("Player seek to position " + parsedBody["status"]["playing_position"])
+            uri = parsedBody["status"]["track"]["track_resource"]["uri"]
+            position = '#' + parseTime(parsedBody["status"]["playing_position"])
+            if (uri != helper.status.track.track_resource.uri){
+              helper.player.play(uri).then(function(res){
+                fetchRoomStatus(options, callback)// POST succeeded...
               })
-              helper.player.pause(parsedBody["playing"])
               callback()
+            } else {
+              fetchRoomStatus(options, callback)
             }
-            fetchRoomStatus(options, callback)// POST succeeded...
           })
           .catch(function (err) {
               console.log(err)// POST failed...
@@ -107,40 +117,18 @@ io.on('connection', function(socket){
         fetchRoomStatus(options, callback)
     })
 
-    // Playback events
-    helper.player.on('play', () => { console.log("PLAY") });
-    helper.player.on('pause', () => { console.log("PAUSE") });
-    helper.player.on('end', () => { console.log("END") });
-    helper.player.on('track-will-change', track => { console.log("TRACK WILL CHANGE")});
-    helper.player.on('status-will-change', status => { console.log("STATUS WILL CHANGE")});
-
-    // Playback control. These methods return promises
-    // helper.player.pause();
-    // helper.player.seek();
-
-    // Get current playback status, including up to date playing position
-    // 'status': {
-    //    'track': ...,
-    //    'shuffle': ...,
-    //    'playing_position': ...
-    //  }
-
     socket.on('listen', function(user, callback){
       var room;
       if (ready){
-        console.log("READY")
         var options = {
                         method: 'POST',
                         uri: global.SEVER_URL + '/api/v1/users',
                         body: user,
                         json: true // Automatically stringifies the body to JSON
                     };
-        console.log(options)
         rp(options)
           .then(function (parsedBody) {
-              console.log("USER LIST")
-              console.log(parsedBody)
-              console.log("USER LIST")// POST succeeded...
+              // POST succeeded...
           })
           .catch(function (err) {
               console.log(err)// POST failed...
@@ -168,7 +156,6 @@ io.on('connection', function(socket){
     socket.on('user connected', function(user, room_token, callback){
       if (room_token){
         current_room_token = room_token
-        console.log(current_room_token)
         var options = {
                           method: 'GET',
                           uri: global.SEVER_URL + '/api/v1/users',
@@ -179,8 +166,7 @@ io.on('connection', function(socket){
                       };
           rp(options)
             .then(function (parsedBody) {
-                console.log(parsedBody)// POST succeeded...
-                callback()
+                callback() // POST succeeded...
             })
             .catch(function (err) {
                 console.log(err)// POST failed...
@@ -194,9 +180,8 @@ io.on('connection', function(socket){
                       };
           rp(options)
             .then(function (parsedBody) {
-                console.log(parsedBody)// POST succeeded...
                 current_user = parsedBody
-                callback()
+                callback() // POST succeeded...
             })
             .catch(function (err) {
                 console.log(err)// POST failed...
@@ -217,12 +202,10 @@ io.on('connection', function(socket){
   });
 
   socket.on('disconnect', function(){
-    helper.player.pause()
   });
 })
 
 
 http.listen(app.get("port"), function() {
-  console.log("Server up and running. Go to " + app.get("host") + ":" + app.get("port"));
-  console.log(process.env.NODE_ENV)
+  console.log("Server up and running. Go to " + "localhost:" + app.get("port"));
 });
