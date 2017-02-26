@@ -4,9 +4,10 @@
     <link rel="stylesheet" type="text/css" href="styles.css">
     <script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
     <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
     <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-    <title>SpotiCast</title>
+    <title>Caterpillar</title>
   </head>
 
   <body>
@@ -16,10 +17,17 @@
   	<button id='listen' disabled class='btn btn-danger'>
   		<b>Listen</b>
   	</button>
+  	<button id='connect' disabled class='btn btn-danger'>
+  		<b>Connect to room</b>
+  	</button>
+  	<label id="share-url"></label>
+  	<div class="hidden" id="connect-form" >
+	  	<input type="text"  id="connect-url" contenteditable>
+	  	<button id="connect-button" class="btn btn-danger">Connect!</button>
+  	</div>
   </body>
 </html>
 
-<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
 <div id="fb-root"></div>
 <script>
 	var broadcasting = false
@@ -84,12 +92,19 @@
 	  });
 	}
 
+	$(document).on('click', '#connect', function(){
+		$('#connect-form').removeClass('hidden')
+		$('#share-url').addClass('hidden')
+	})
+
   $(document).on('click', '#broadcast', function(){
+  	$('#connect-form').addClass('hidden')
   	if (broadcasting){
   		broadcasting = false
   	} else {
 	  	socket.emit('broadcast start', 'RandomRoom', function(room){
-		   	console.log("http://localhost:5000?r="+room.token)
+				$('#share-url').removeClass('hidden')
+		   	$('#share-url').html("Share this url: http://localhost:5000?r="+room.token)
 		  })
   		broadcasting = true
 	  	updateBroadcastStatus()
@@ -104,18 +119,14 @@
 
   socket.on("player ready", function(){
 		facebook(room_token, function(){
-	  	if (!room_token){
-	  		$("#broadcast").attr('disabled', false)
-	  	} else {
-				$("#listen").attr('disabled', false)
-				console.log("You can not broadcast because you are not the owner of the room")
-				$(document).on('click', '#listen', function(){
-					socket.emit("listen", current_user, function(room){
-						console.log("you are now connected to room " + room.name)
-						updateLocalPlayer(room)
-					})
+  		$("#broadcast").attr('disabled', false)
+			$("#connect").attr('disabled', false)
+			$(document).on('click', '#listen', function(){
+				socket.emit("listen", current_user, function(room){
+					console.log("you are now connected to room " + room.name)
+					updateLocalPlayer(room)
 				})
-	  	}
+			})
 		})
   })
 
@@ -129,4 +140,18 @@
 		alert(status)
 	})
 </script>
-<div class="fb-login-button" data-max-rows="1" data-size="large" data-show-faces="true" data-auto-logout-link="false"></div>
+
+<style type="text/css">
+	button, label, input {
+		margin-top: 10px;
+    margin-left: 20px;
+	}
+
+	input {
+		min-width: 400px;
+	}
+
+	div	{
+		display: flex;
+	}
+</style>
