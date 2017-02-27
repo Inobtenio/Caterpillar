@@ -37,7 +37,7 @@ function createWindow () {
   win = new BrowserWindow({
     width: 800,
     height: 120,
-    resizable: false,
+    // resizable: false,
     webPreferences: {
         nodeIntegration: false,
         webSecurity: false,
@@ -65,9 +65,9 @@ function createWindow () {
     win = null
   })
 
-  win.webContents.on("devtools-opened", () => {
-    win.webContents.closeDevTools();
-  });
+  // win.webContents.on("devtools-opened", () => {
+  //   win.webContents.closeDevTools();
+  // });
 }
 
 // This method will be called when Electron has finished

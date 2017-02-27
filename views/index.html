@@ -25,13 +25,14 @@
 	  	<input type="text"  id="connect-url" contenteditable>
 	  	<button id="connect-button" class="btn btn-danger">Connect!</button>
   	</div>
+  	<button id="logout" class="btn btn-danger">Logout</button>
   </body>
 </html>
 
 <div id="fb-root"></div>
 <script>
 	var broadcasting = false
-	var current_user;
+	var current_user, logged_in
 
   var getUrlParameter = function getUrlParameter(sParam) {
 	  var sPageURL = decodeURIComponent(window.location.search.substring(1)),
@@ -61,6 +62,7 @@
 		        user["profile_picture"] = response.data.url
 				     socket.emit('user connected', user, token, function(){
 				     	current_user = user
+				     	console.log("FB data retrieved")
 				     	callback()
 				     })
 		      }
@@ -92,9 +94,29 @@
 	  });
 	}
 
+	function logout(){
+		$.getScript('//connect.facebook.net/en_US/sdk.js', function(){
+	    FB.init({
+	      appId      : '1649826191991303',
+	      xfbml      : false,
+	      version    : 'v2.8'
+	    });
+	    FB.getLoginStatus(function(response) {
+	    	console.log(response)
+				FB.logout(function(response){
+				    return false;
+				});
+			});
+	  });
+	}
+
 	$(document).on('click', '#connect', function(){
 		$('#connect-form').removeClass('hidden')
 		$('#share-url').addClass('hidden')
+	})
+
+	$(document).on('click', '#logout', function(){
+		logout()
 	})
 
   $(document).on('click', '#broadcast', function(){
