@@ -36,7 +36,7 @@ function createWindow () {
   // Create the browser window.
   win = new BrowserWindow({
     width: 800,
-    height: 120,
+    height: 520,
     // resizable: false,
     webPreferences: {
         nodeIntegration: false,
@@ -64,10 +64,6 @@ function createWindow () {
     // when you should delete the corresponding element.
     win = null
   })
-
-  // win.webContents.on("devtools-opened", () => {
-  //   win.webContents.closeDevTools();
-  // });
 }
 
 // This method will be called when Electron has finished
@@ -108,6 +104,7 @@ function parseTime(number) {
 io.on('connection', function(socket){
   var current_user, current_room_token, ready
   const helper = SpotifyWebHelper();
+  socket.emit('message user', "Setting up Spotify client.")
 
   helper.player.on('ready', () => {
     socket.emit("player ready")
@@ -136,23 +133,24 @@ io.on('connection', function(socket){
     })
 
     socket.on('update broadcast status', function(callback){
-      var options = {
-                        method: 'PUT',
-                        uri: global.SEVER_URL + '/api/v1/rooms',
-                        body: {
-                            caster_id: current_user.id,
-                            status: helper.status,
-                            playing: helper.status.playing
-                        },
-                        json: true // Automatically stringifies the body to JSON
-                    };
-      rp(options)
-        .then(function (parsedBody) {
-            callback()// POST succeeded...
-        })
-        .catch(function (err) {
-            console.log(err)// POST failed...
-        });
+      // var options = {
+      //                   method: 'PUT',
+      //                   uri: global.SEVER_URL + '/api/v1/rooms',
+      //                   body: {
+      //                       caster_id: current_user.id,
+      //                       status: helper.status,
+      //                       playing: helper.status.playing
+      //                   },
+      //                   json: true // Automatically stringifies the body to JSON
+      //               };
+      // rp(options)
+      //   .then(function (parsedBody) {
+      //       callback()// POST succeeded...
+      //   })
+      //   .catch(function (err) {
+      //       console.log(err)// POST failed...
+      //   });
+      callback()
     })
     socket.on('broadcast stop', function(){
       
@@ -226,39 +224,40 @@ io.on('connection', function(socket){
     })
 
     socket.on('user connected', function(user, room_token, callback){
-      if (room_token){
-        current_room_token = room_token
-        var options = {
-                          method: 'GET',
-                          uri: global.SEVER_URL + '/api/v1/users',
-                          body: {
-                            token: current_room_token
-                          },
-                          json: true // Automatically stringifies the body to JSON
-                      };
-          rp(options)
-            .then(function (parsedBody) {
-                callback() // POST succeeded...
-            })
-            .catch(function (err) {
-                console.log(err)// POST failed...
-            });
-      } else {
-        var options = {
-                          method: 'POST',
-                          uri: global.SEVER_URL + '/api/v1/users',
-                          body: user,
-                          json: true // Automatically stringifies the body to JSON
-                      };
-          rp(options)
-            .then(function (parsedBody) {
-                current_user = parsedBody
-                callback() // POST succeeded...
-            })
-            .catch(function (err) {
-                console.log(err)// POST failed...
-            }); 
-      }
+      // if (room_token){
+      //   current_room_token = room_token
+      //   var options = {
+      //                     method: 'GET',
+      //                     uri: global.SEVER_URL + '/api/v1/users',
+      //                     body: {
+      //                       token: current_room_token
+      //                     },
+      //                     json: true // Automatically stringifies the body to JSON
+      //                 };
+      //     rp(options)
+      //       .then(function (parsedBody) {
+      //           callback() // POST succeeded...
+      //       })
+      //       .catch(function (err) {
+      //           console.log(err)// POST failed...
+      //       });
+      // } else {
+      //   var options = {
+      //                     method: 'POST',
+      //                     uri: global.SEVER_URL + '/api/v1/users',
+      //                     body: user,
+      //                     json: true // Automatically stringifies the body to JSON
+      //                 };
+      //     rp(options)
+      //       .then(function (parsedBody) {
+      //           current_user = parsedBody
+      //           callback() // POST succeeded...
+      //       })
+      //       .catch(function (err) {
+      //           console.log(err)// POST failed...
+      //       }); 
+      // }
+      callback()
     })
   });
 
@@ -267,8 +266,10 @@ io.on('connection', function(socket){
     console.log(err)
     if (err.message.match(/No user logged in/)) {
       console.log("not logged in")// also fires when Spotify client quits
+      socket.emit('message user', "User is not logged in the Spotify client.")
     } else {
       console.log("not installed")
+      socket.emit('message user', "Spotify client is not running or is not installed.")
       // other errors: /Cannot start Spotify/ and /Spotify is not installed/
     }
   });

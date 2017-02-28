@@ -11,21 +11,20 @@
   </head>
 
   <body>
-  	<button id='broadcast' disabled class='btn btn-danger'>
-  		<b>Broadcast</b>
-  	</button>
-  	<button id='listen' disabled class='btn btn-danger'>
-  		<b>Listen</b>
-  	</button>
-  	<button id='connect' disabled class='btn btn-danger'>
-  		<b>Connect to room</b>
-  	</button>
+  	<div>
+	  	<button id='broadcast' disabled class='btn btn-danger'>
+	  		<b>Broadcast</b>
+	  	</button>
+	  	<button id='connect' disabled class='btn btn-danger'>
+	  		<b>Connect to room</b>
+	  	</button>
+	  	<label style='color: grey' class='pull-right' id='message'></label>
+  	</div>
   	<label id="share-url"></label>
   	<div class="hidden" id="connect-form" >
-	  	<input type="text"  id="connect-url" contenteditable>
+	  	<input type="text"  id="connect-token" placeholder="Enter room's token">
 	  	<button id="connect-button" class="btn btn-danger">Connect!</button>
   	</div>
-  	<button id="logout" class="btn btn-danger">Logout</button>
   </body>
 </html>
 
@@ -68,6 +67,15 @@
 		      }
 		    }
 		  ); 
+		 //  FB.api(
+			//     "/"+ response.id + "/friends",
+			//     function (response) {
+			//       if (response && !response.error) {
+			//         updateFriendsTable(response)
+			//         // console.log(response)
+			//       }
+			//     }
+			// );
 	  });
 	}
 	function facebook(token, callback){
@@ -110,6 +118,24 @@
 	  });
 	}
 
+	function updateFriendsTable(object) {
+		if (object.length == 0){
+
+		} else {
+
+		}
+	}
+
+	$(document).on('click', '#connect-button', function(){
+		token = $("#connect-token").text()
+		if (token == ''){
+			alert('A room token is needed to connect')
+		} else {
+
+		}
+	})
+
+
 	$(document).on('click', '#connect', function(){
 		$('#connect-form').removeClass('hidden')
 		$('#share-url').addClass('hidden')
@@ -140,16 +166,18 @@
   }
 
   socket.on("player ready", function(){
-		facebook(room_token, function(){
+  	updateMessage("Spotify client ready! Fetching your Facebook data...")
+		// facebook(room_token, function(){
   		$("#broadcast").attr('disabled', false)
 			$("#connect").attr('disabled', false)
-			$(document).on('click', '#listen', function(){
+  		updateMessage("You're all set!")
+			$(document).on('click', '.connect', function(){
 				socket.emit("listen", current_user, function(room){
 					console.log("you are now connected to room " + room.name)
 					updateLocalPlayer(room)
 				})
 			})
-		})
+		// })
   })
 
 	function updateLocalPlayer(room){
@@ -158,8 +186,16 @@
 		})
 	}
 
+	function updateMessage(message, disappear){
+		$("#message").html(message)
+	}
+
 	socket.on("player status", function(status){
 		alert(status)
+	})
+
+	socket.on("message user", function(message){
+		updateMessage(message, false)
 	})
 </script>
 

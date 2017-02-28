@@ -23,6 +23,7 @@
     "electron-packager": "^8.5.2"
   },
   "devDependencies": {
-    "electron": "^1.4.15"
+    "electron": "^1.4.15",
+    "electron-builder": "^14.5.2"
   }
 }
